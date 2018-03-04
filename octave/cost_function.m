@@ -37,6 +37,7 @@ function result = regression_iter (alpha, thetas,  X, Y)
  result = [thetas(1) - alpha/n * sum( diff ) , result];
 endfunction
 
+%update rule for the fit
 function result = regression_iter_diff (alpha, thetas, diff , X)
  n = length(X);
  %diff = linear_theta(thetas, X) - Y;
@@ -55,7 +56,7 @@ endfunction
 %linearChisq(thetas, X, Y)
 
 % prepare a dataset
-Xdata = 1:1:10;
+Xdata = -3:.5:5;
 noise = [1.18194
    1.07424
    0.69250
@@ -78,33 +79,34 @@ X = (Xdata - min(Xdata)) / theXdataRange ;
 % initial guess
 thetas = [0.2,0.3]
 j0 = linearChisq(thetas, X,Y);
-diff = linear_theta(thetas, X) - Y;
-iterations = 100000
+current_diff = linear_theta(thetas, X) - Y;
+iterations = 1000
 residuals = j0
-alpha = 1e-4
-last_update = j0
+alpha = 1e+0
 adjust_alpha = [alpha]
 
 % stopping cryterion
-epsilon = 1e-6
+epsilon = 1e-7
 m = length(X);
 
 tic;
 for i=2:iterations
-  last_diff = diff;
-  tmp = regression_iter_diff(alpha, thetas, diff, X);
+  last_diff = current_diff;
+  tmp = regression_iter_diff(alpha, thetas, current_diff, X);
   %tmp = regression_iter(alpha, thetas, X, Y);
   thetas = tmp;
-  diff = (linear_theta(thetas, X) - Y ) ;
-  if sum( isnan(diff) ) > 1 
+  current_diff = (linear_theta(thetas, X) - Y ) ;
+  if sum( isnan(current_diff) ) > 1 
     i
     break
   end
   %j0 = linearChisq(thetas, X, Y);
-  j0 = linearChisqDiff(diff, X);
-
-  if j0 - residuals(i-1) < 0
-    if (j0 - residuals(i-1) ) > - m * 1e-0
+  j0 = linearChisqDiff(current_diff, X);
+  
+  down_step = j0 - residuals(i-1);
+  if down_step < 0
+    
+    if (down_step ) > - m * 1e-0
       alpha = alpha * 3;
     end
   else
@@ -112,19 +114,25 @@ for i=2:iterations
   end
   adjust_alpha = [adjust_alpha alpha];
   residuals = [ residuals j0 ] ;
-  if abs(last_diff - diff)/m < epsilon
+  if abs(down_step) < epsilon
    break;
   end
   %plot(residuals , '-*-' , ";residuals;")
 end
 toc;
-subplot(3,1,1)
+subplot(2,3,1)
 semilogy (residuals ,'-r' , 'linewidth' , 5 )  
+subplot(2,3,4)
+plot (diff(residuals) ,'-r' , 'linewidth' , 5 )  
 title ('residuals')
 ylabel('chisq')
-subplot(3,1,2)
-semilogy (adjust_alpha,'-g' , 'linewidth' , 5 )
+subplot(2,3,[2 5])
+semilogy (adjust_alpha,'.g' , 'linewidth' , 5 )
 ylabel('alpha')
 xlabel('iteration')
-subplot(3,1,3)
+subplot(2,3,[3 6])
 plot(X,Y,'.r', 'markersize' , 4,X ,linear_theta(thetas,X),'linewidth' , 5)
+
+% the results of the linear fit are
+thetas(1) - (min(Xdata)* thetas(2) / theXdataRange)
+thetas(2)/theXdataRange
