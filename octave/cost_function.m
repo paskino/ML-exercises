@@ -55,7 +55,7 @@ endfunction
 %linearChisq(thetas, X, Y)
 
 % prepare a dataset
-Xdata = 1:10:100;
+Xdata = 1:1:10;
 noise = [1.18194
    1.07424
    0.69250
@@ -81,9 +81,9 @@ j0 = linearChisq(thetas, X,Y);
 diff = linear_theta(thetas, X) - Y;
 iterations = 100000
 residuals = j0
-alpha = 0.0003
+alpha = 1e-4
 last_update = j0
-adjust_alpha = 1
+adjust_alpha = [alpha]
 
 % stopping cryterion
 epsilon = 1e-6
@@ -103,13 +103,14 @@ for i=2:iterations
   %j0 = linearChisq(thetas, X, Y);
   j0 = linearChisqDiff(diff, X);
 
-  %if last_update - j0 < 0 && adjust_alpha == 1
-  %  alpha = alpha * 3;
-  %else
-  %  alpha = alpha / 3;
-  %  adjust_alpha = 0;
-  %end
-  
+  if j0 - residuals(i-1) < 0
+    if (j0 - residuals(i-1) ) > - m * 1e-0
+      alpha = alpha * 3;
+    end
+  else
+    alpha = alpha / 3;
+  end
+  adjust_alpha = [adjust_alpha alpha];
   residuals = [ residuals j0 ] ;
   if abs(last_diff - diff)/m < epsilon
    break;
@@ -117,10 +118,13 @@ for i=2:iterations
   %plot(residuals , '-*-' , ";residuals;")
 end
 toc;
-subplot(2,1,1)
-semilogy (residuals ,'-r' , 'linewidth' , 5)
+subplot(3,1,1)
+semilogy (residuals ,'-r' , 'linewidth' , 5 )  
 title ('residuals')
-xlabel('iteration')
 ylabel('chisq')
-subplot(2,1,2)
-plot(X,Y,'or', 'markersize' , 10,X ,linear_theta(thetas,X),'linewidth' , 5)
+subplot(3,1,2)
+semilogy (adjust_alpha,'-g' , 'linewidth' , 5 )
+ylabel('alpha')
+xlabel('iteration')
+subplot(3,1,3)
+plot(X,Y,'.r', 'markersize' , 4,X ,linear_theta(thetas,X),'linewidth' , 5)
