@@ -55,7 +55,7 @@ endfunction
 %linearChisq(thetas, X, Y)
 
 % prepare a dataset
-X = 1:1:100;
+Xdata = 1:10:100;
 noise = [1.18194
    1.07424
    0.69250
@@ -66,7 +66,12 @@ noise = [1.18194
    0.39879
    0.96984
   -1.62558];
-Y = (10- 2* X) + 2.8*randn(1, length(X)); 
+
+Y = (10- 2* Xdata) + 2.8*randn(1, length(Xdata));
+
+% variable scaling to 0-1 range
+theXdataRange = (max(Xdata) - min(Xdata));
+X = (Xdata - min(Xdata)) / theXdataRange ;
 %Y = (10- 2* X) + 0.8*noise'; 
 
 % h_{theta} (x) = theta_0  + theta_1 * x 
@@ -81,7 +86,8 @@ last_update = j0
 adjust_alpha = 1
 
 % stopping cryterion
-epsilon = 1e-5
+epsilon = 1e-6
+m = length(X);
 
 tic;
 for i=2:iterations
@@ -89,7 +95,7 @@ for i=2:iterations
   tmp = regression_iter_diff(alpha, thetas, diff, X);
   %tmp = regression_iter(alpha, thetas, X, Y);
   thetas = tmp;
-  diff = linear_theta(thetas, X) - Y;
+  diff = (linear_theta(thetas, X) - Y ) ;
   if sum( isnan(diff) ) > 1 
     i
     break
@@ -105,7 +111,7 @@ for i=2:iterations
   %end
   
   residuals = [ residuals j0 ] ;
-  if abs(last_diff - diff) < epsilon
+  if abs(last_diff - diff)/m < epsilon
    break;
   end
   %plot(residuals , '-*-' , ";residuals;")
@@ -117,4 +123,4 @@ title ('residuals')
 xlabel('iteration')
 ylabel('chisq')
 subplot(2,1,2)
-plot(X,Y,'or', 'markersize' , 10,linear_theta(thetas,X),'linewidth' , 5)
+plot(X,Y,'or', 'markersize' , 10,X ,linear_theta(thetas,X),'linewidth' , 5)
