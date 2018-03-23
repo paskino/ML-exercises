@@ -31,10 +31,10 @@ function ev = linear_theta(theta, x)
 endfunction
 
 function result = regression_iter (alpha, thetas,  X, Y)
- n = length(X);
+ m = length(X);
  diff = linear_theta(thetas, X) - Y;
- result = thetas(2:end) - alpha/n * sum( diff .* X);
- result = [thetas(1) - alpha/n * sum( diff ) , result];
+ result = thetas(2:end) - alpha/m * (diff' * X);
+ result = [thetas(1) - alpha/m * sum( diff ) , result];
 endfunction
 
 %update rule for the fit
