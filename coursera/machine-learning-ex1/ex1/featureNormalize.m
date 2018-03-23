@@ -28,11 +28,11 @@ m = size(X,1);
 
 
 mu = sum(X/size(X,1));
-%difference = X - mu;
-%sigma = sqrt( sum(difference.^2)/(m-1)) ;
-therange = max(X) - min(X);
-X_norm = X ./ therange;
-
+difference = X - mu;
+sigma = sqrt( sum(difference.^2)/(m-1)) ;
+%therange = max(X) - min(X);
+%X_norm = X ./ therange;
+X_norm = difference ./ sigma;
 
 
 
