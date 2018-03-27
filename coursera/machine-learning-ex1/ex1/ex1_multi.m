@@ -58,7 +58,7 @@ fprintf(' x = [%.2f %.2f], y = %.0f \n', [X_norm(1:10,:) y(1:10,:)]');
 % Add intercept term to X
 X = [ones(m, 1) X_norm];
 fprintf('First 10 examples from the dataset after add intercept: \n');
-fprintf(' x = [%.2f %.2f], y = %.0f \n', [X(1:10,:) y(1:10,:)]');
+fprintf(' x = [%.2f %.2f %.2f], y = %.0f \n', [X(1:10,:) y(1:10,:)]');
 
 
 %% ================ Part 2: Gradient Descent ================
@@ -88,16 +88,16 @@ fprintf(' x = [%.2f %.2f], y = %.0f \n', [X(1:10,:) y(1:10,:)]');
 fprintf('Running gradient descent ...\n');
 
 % Choose some alpha value
-alpha = 0.001;
+alpha = 0.3;
 num_iters = 400;
 
 % Init Theta and Run Gradient Descent 
-theta = zeros(3, 1);
+theta = ones(3, 1);
 [theta, J_history] = gradientDescentMulti(X, y, theta, alpha, num_iters);
 
 % Plot the convergence graph
 figure;
-plot(1:numel(J_history), J_history, '-b', 'LineWidth', 2);
+semilogy(1:numel(J_history), J_history, '-b', 'LineWidth', 2);
 xlabel('Number of iterations');
 ylabel('Cost J');
 
@@ -111,7 +111,8 @@ fprintf('\n');
 % Recall that the first column of X is all-ones. Thus, it does
 % not need to be normalized.
 price = 0; % You should change this
-price = [1 1650 3] * theta;
+house = ([1 1650 3] - [0 mu]) ./[1 sigma]
+price = house * theta;
 
 % ============================================================
 
