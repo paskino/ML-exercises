@@ -45,19 +45,19 @@ Theta2_grad = zeros(size(Theta2));
 a1 = [ ones(m,1) X];
 
 % get activation at layer 2 
-a2 = sigmoid(Theta1 * a1');
+z2 = Theta1 * a1';
+a2 = sigmoid(z2);
 
 %add column for "bias"
 a2 = [ones(1,size(a2,2),1); a2];
 
-a3 = Theta2 * a2;
+z3 = Theta2 * a2;
 % output of layer 2
-h = (sigmoid(a3'));
-
+a3 = (sigmoid(z3'));
 %recode y
 Y = eye(num_labels)(:,y);
 
-J = sum(sum(- Y' .* log(h) - (1-Y)' .* log (1-h))/m);
+J = sum(sum(- Y' .* log(a3) - (1-Y)' .* log (1-a3))/m);
 
 %regulariser
 reg = sum(sum(Theta1(:,2:end).^2));
@@ -65,6 +65,7 @@ reg = reg + sum(sum(Theta2(:,2:end).^2));
 reg = lambda * reg / (2*m);
 
 J = J + reg;  
+
 % Part 2: Implement the backpropagation algorithm to compute the gradients
 %         Theta1_grad and Theta2_grad. You should return the partial derivatives of
 %         the cost function with respect to Theta1 and Theta2 in Theta1_grad and
@@ -80,6 +81,21 @@ J = J + reg;
 %               over the training examples if you are implementing it for the 
 %               first time.
 %
+
+delta_3 = a3 - Y';
+%size(delta_3)
+%size(Theta2)
+%size(a3)
+delta_2 = Theta2(:,2:end)' * delta_3' .* sigmoidGradient(z2);
+delta_1 = delta_2 * a2(2:end,:)';
+
+D1 = delta_2 * a1;
+D2 = delta_3' * a2';
+
+Theta1_grad = D1 / m;
+Theta2_grad = D2 / m;
+
+
 % Part 3: Implement regularization with the cost function and gradients.
 %
 %         Hint: You can implement this around the code for
@@ -88,20 +104,13 @@ J = J + reg;
 %               and Theta2_grad from Part 2.
 %
 
+Theta1(:,1) = 0;
+Theta2(:,1) = 0;
+Theta1 = lambda / m * Theta1;
+Theta2 = lambda / m * Theta2;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+Theta1_grad = Theta1_grad + Theta1;
+Theta2_grad = Theta2_grad + Theta2;
 
 
 
