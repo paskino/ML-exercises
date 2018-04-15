@@ -81,6 +81,25 @@ pause;
 %                 fit.
 %
 
+
+%%
+%lambda = 0 ;
+%error_train = zeros(m, 1);
+%error_val   = zeros(m, 1);
+%for i = 1:m
+%  i
+%  x_i = X(1:i);
+%  mtrain = size(x_i, 1);
+%  theta = trainLinearReg([ones(i,1) x_i], y(1:i), lambda);
+%  [J,grad] = linearRegCostFunction([ones(mtrain, 1) x_i], y(1:i), theta, 0);
+%  error_train(i) = J;
+%  [J,grad] = linearRegCostFunction([ones(size(Xval, 1), 1) Xval], yval, theta, 0);
+%  error_val(i) = J;
+%endfor
+%%
+%error_val
+%error_train
+
 %  Train linear regression with lambda = 0
 lambda = 0;
 [theta] = trainLinearReg([ones(m, 1) X], y, lambda);
@@ -105,6 +124,7 @@ pause;
 %
 
 lambda = 0;
+
 [error_train, error_val] = ...
     learningCurve([ones(m, 1) X], y, ...
                   [ones(size(Xval, 1), 1) Xval], yval, ...
