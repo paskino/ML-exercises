@@ -4,16 +4,19 @@ from __future__ import print_function
 
 import tensorflow as tf
 import numpy
-import scipy.io as sio
+#import scipy.io as sio
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
-filename = ("../coursera/machine-learning-ex4/ex4/ex4data1.mat")
+#filename = ("../coursera/machine-learning-ex4/ex4/ex4data1.mat")
 
-data = sio.loadmat(filename)
+#data = sio.loadmat(filename)
 
-X = data['X']
-Y = data['y']
+#X = data['X']
+#Y = data['y']
+
+X = numpy.load('../data/X.npy')
+Y = numpy.load('../data/y.npy')
 
 model = tf.keras.models.Sequential([
   tf.keras.layers.Dense(400, activation="relu", input_shape=(400,)) ,
