@@ -93,23 +93,26 @@ for i in range(len(X)-ts):
     test_datasetY[i][ j ] = 1
 
 hist = []
-lambdas = [0.003, 0.001, 0.0003, 0.0001 , 0.00003, 0.00001 ]
+lambdas = [ 0.00001, 1e-6 , 0 ]
 
 fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(9, 4))
 axes[0].set_title('loss')
 axes[1].set_title('accuracy')
 
-epochs = [i for i in range(50)]
+nepochs = 50
+epochs = [i for i in range(nepochs)]
 for l in lambdas:
     # update the regularisation parameter
     K.set_value(reg.l2, K.cast_to_floatx(l))
     hist.append( 
-        model.fit(train_datasetX, train_datasetY, epochs=50)
+        model.fit(train_datasetX, train_datasetY, epochs=nepochs)
     )
     #print (hist.history)
 
     axes[0].plot(epochs,hist[-1].history['loss'],'-', label='lambda {0}'.format(l))
     axes[1].plot(epochs,hist[-1].history['acc'],'-', label='lambda {0}'.format(l))
+
+legend = axes[1].legend(loc='lower center', shadow=True, fontsize='x-large')
 
 plt.show()
 score = model.evaluate(test_datasetX, test_datasetY)
