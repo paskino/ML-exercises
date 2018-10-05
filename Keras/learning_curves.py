@@ -93,26 +93,37 @@ for i in range(len(X)-ts):
     test_datasetY[i][ j ] = 1
 
 hist = []
-lambdas = [ 0.00001, 1e-6 , 0 ]
+lambdas = [ 0.01,0.003,1e-3,3e-4,1e-4,3e-5,0.00001, 1e-6 , 0 ]
+lambdas = [ 0.01,0.001 ,3e-4, 1e-4 , 1e-6]
 
 fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(9, 4))
 axes[0].set_title('loss')
 axes[1].set_title('accuracy')
 
-nepochs = 50
+nepochs = 200
 epochs = [i for i in range(nepochs)]
+learn = []
 for l in lambdas:
     # update the regularisation parameter
     K.set_value(reg.l2, K.cast_to_floatx(l))
     hist.append( 
-        model.fit(train_datasetX, train_datasetY, epochs=nepochs)
+        model.fit(train_datasetX, train_datasetY, epochs=nepochs,
+	verbose=2,batch_size=20)
     )
     #print (hist.history)
+    learn.append([ l , 
+       model.evaluate(test_datasetX, test_datasetY)
+       ] )
 
-    axes[0].plot(epochs,hist[-1].history['loss'],'-', label='lambda {0}'.format(l))
-    axes[1].plot(epochs,hist[-1].history['acc'],'-', label='lambda {0}'.format(l))
+print (learn)
+learning = list(map(list, zip(*learn)))[1]
+lng = list(map(list, zip(*learning)))
+#axes[0].plot(epochs,hist[-1].history['loss'],'-', label='lambda {0}'.format(l))
+#axes[1].plot(epochs,hist[-1].history['acc'],'-', label='lambda {0}'.format(l))
+axes[0].semilogx(lambdas,lng[0],'-', label='loss')
+axes[1].semilogx(lambdas,lng[1],'-', label='acc')
 
-legend = axes[1].legend(loc='lower center', shadow=True, fontsize='x-large')
+#legend = axes[1].legend(loc='lower center', shadow=True, fontsize='x-large')
 
 plt.show()
 score = model.evaluate(test_datasetX, test_datasetY)
