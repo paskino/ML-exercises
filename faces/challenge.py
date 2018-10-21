@@ -34,21 +34,10 @@ count = 0
 with open('lfw_names.txt') as fp:
     line = fp.readline()
     while line:
-        #k = line.find(' ')
-        #names += [line[:k].replace('_', ' ')]
         theline = line.split(' ')
         names.append(theline[0])
         num.append(int(theline[1]))
-	#new_off = int(line[k:])
-        #off += [new_off]
-        #count += 1
         line = fp.readline()
-#off += [ni]
-#i = 0
-#for c in range(count):
-#    for j in range(off[c], off[c + 1]):
-#        index[j] = i
-#    i += 1
 
 def count_img(num):
     return [num[i+1] - num[i] for i in range(len(num)) if i < len(num)-1] 
@@ -76,18 +65,6 @@ for i in range (len(count)):
             names_repeat.append(names[i])
             index_repeat.append(num[i] + j)
 
-'''
-filename = path + '/%seigim.npy' % pref
-print('loading eigenimages from %s...' % filename)
-u = numpy.load(filename)
- 
-filename = path + '/%scoord.npy' % pref
-print('loading images coordinates in eigenimages basis from %s...' % filename)
-v = numpy.load(filename)
- 
-nc, ny, nx = u.shape
-ni = v.shape[1]
-'''
 
 select = 'Bill_Clinton'
 select = 'Vladimir_Putin'
@@ -129,7 +106,6 @@ training_set = []
 cv_set = []
 
 for select in names:
-    #select = 'Bill_Clinton'
     if select in names_repeat:
         i = 0 
         while (i < len(names_repeat) and names_repeat[i] != select): 
@@ -166,8 +142,8 @@ for select in names:
             nts = int(nselect * 0.7)
             ncv = nselect - nts
     
-            print ("   Number of images in training set {0}".format(nts))
-            print ("   Number of images in cross validation set {0}".format(ncv))
+            #print ("   Number of images in training set {0}".format(nts))
+            #print ("   Number of images in cross validation set {0}".format(ncv))
         for n in range(nts):
             training_set.append((select, index_repeat[i+n]))
         for n in range(ncv):
