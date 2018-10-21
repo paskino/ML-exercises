@@ -1,7 +1,8 @@
 '''
 Facial recognition data challenge
 
-Initial release from https://www.dropbox.com/sh/a62wxyw9fpzwt95/AABJE0CEAtqOuLXKo_sOTFMVa?dl=0&preview=assemble.py
+Data from Evgueni Ovtchinnikov: https://www.dropbox.com/sh/a62wxyw9fpzwt95/AABJE0CEAtqOuLXKo_sOTFMVa?dl=0
+https://github.com/evgueni-ovtchinnikov
 
 1. clean the dataset: select only images with more than one face
 2. select 70% train 30% cross validation
@@ -98,7 +99,7 @@ plt.show()
 # 7     , 5-2
 # 8     , 5-3
 # 9     , 6-3
-# 10    , int (10*0.3)
+# 10    , 70%-30%
 # 11    , idem
 # 12    , 
 
