@@ -10,9 +10,10 @@ https://github.com/evgueni-ovtchinnikov
 '''
 import numpy
 from functools import reduce
+import matplotlib.pyplot as plt
 
 __version__ = '0.1.0'
-from docopt import docopt
+#from docopt import docopt
 ''' 
 args = docopt(__doc__, version=__version__)
 file = args['<images>']
