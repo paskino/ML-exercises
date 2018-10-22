@@ -11,6 +11,7 @@ https://github.com/evgueni-ovtchinnikov
 import numpy
 from functools import reduce
 import matplotlib.pyplot as plt
+import pickle
 
 __version__ = '0.1.0'
 #from docopt import docopt
@@ -79,7 +80,7 @@ nselect = reduce(lambda x,y: x + 1 if y == select else x, names_repeat,0)
 # the selected person will be in the range [i, i-nselect-1]
 nc, ny, nx = u.shape
 index = index_repeat[i]
-PCA_image = numpy.dot(u.T, v[:,index])
+PCA_image = numpy.dot(u.T, v.T[index])
 PCA_image = numpy.reshape(PCA_image, (ny, nx))
 plt.figure()
 plt.title('PCA approximation of the image %d' % i)
@@ -104,9 +105,10 @@ plt.show()
 # 11    , idem
 # 12    , 
 
-training_set = []
-cv_set = []
+training_set_indices = []
+cv_set_indices = []
 
+face_index = 0
 for select in names:
     if select in names_repeat:
         i = 0 
@@ -147,8 +149,42 @@ for select in names:
             #print ("   Number of images in training set {0}".format(nts))
             #print ("   Number of images in cross validation set {0}".format(ncv))
         for n in range(nts):
-            training_set.append((select, index_repeat[i+n]))
+            training_set_indices.append((select, index_repeat[i+n], face_index))
         for n in range(ncv):
-            cv_set.append((select, index_repeat[i+nts+n]))
+            cv_set_indices.append((select, index_repeat[i+nts+n], face_index))
+            
+        face_index += 1
 
 
+
+        
+neig = v.shape[0]        
+training_set = numpy.zeros((len(training_set_indices), neig), dtype=v.dtype)
+cv_set = numpy.zeros((len(cv_set_indices), neig), dtype=v.dtype)
+
+for i,face in enumerate(training_set_indices):
+    faceindex = face[1]
+    training_set[i][:] = v.T[faceindex]
+    
+for i,face in enumerate(cv_set_indices):
+    faceindex = face[1]
+    cv_set[i][:] = v.T[faceindex]
+
+    
+# show that we are doing well
+select = 'Vladimir_Putin'
+select = 'Colin_Powell'
+index = 0 
+while (not select == training_set_indices[index][0]):
+    index += 1
+    
+PCA_image = numpy.dot(u.T, training_set[index])
+PCA_image = numpy.reshape(PCA_image, (ny, nx))
+plt.figure()
+plt.title('PCA approximation of the image {}'.format(training_set_indices[index][0]))
+plt.imshow(PCA_image.T, cmap = 'gray')
+plt.show()
+
+# save description of dataset
+pickle.dump(training_set_indices, open("training_set_indices.pkl", "wb"))
+pickle.dump(cv_set_indices, open("cv_set_indices.pkl", "wb"))
