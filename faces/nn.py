@@ -80,10 +80,10 @@ class FaceDataset(object):
 
         face = self.indices[self.indexPic]
         y = (numpy.hstack((self.v.T[self.indexPic], self.indexName)),
-             1 if face[2] == self.indexName else 0)
-        print(face)
-        print(self.indexName, "is the same",
-              1 if face[2] == self.indexName else 0)
+             True if face[2] == self.indexName else False)
+        # print(face)
+        # print(self.indexName, "is the same",
+        #      1 if face[2] == self.indexName else 0)
 
         # update the index
         if self.indexName == self.dimName:
@@ -96,13 +96,42 @@ class FaceDataset(object):
 
         return y
 
+class LabelDataset(FaceDataset):
+    def __init__(self, indices, eigcoord):
+        super(LabelDataset, self).__init__(indices, eigcoord)
+    def __next__(self):
+        return super(LabelDataset, self).__next__()[1]
 
-dataset = FaceDataset(training_set_indices, v)
+class XDataset(FaceDataset):
+    def __init__(self, indices, eigcoord):
+        super(XDataset, self).__init__(indices, eigcoord)
+    def __next__(self):
+        return super(XDataset, self).__next__()[0]
+
 # next(dataset)
-tfdata = tf.data.Dataset.from_generator(dataset,
-                                        (tf.float32, tf.uint8), 
+#dataset = FaceDataset(training_set_indices , v)
+#print ("dataset: " , dataset.__next__())
+x_train = XDataset(training_set_indices , v)
+y_train = LabelDataset(training_set_indices , v)
+x_cv = XDataset(cv_set_indices , v)
+y_cv = LabelDataset(cv_set_indices , v)
+print ("x_train: " , x_train.__next__())
+print ("y_train: " , y_train.__next__())
+
+tfx_train = tf.data.Dataset.from_generator(x_train,
+                                        (tf.float32, ), 
                                         (tf.TensorShape(neig+1), 
-                                            tf.TensorShape(None)))
+                                            ))
+tfy_train = tf.data.Dataset.from_generator(y_train,
+                                        tf.bool) 
+tfx_test = tf.data.Dataset.from_generator(x_cv,
+                                        (tf.float32, ), 
+                                        (tf.TensorShape(neig+1), 
+                                            ))
+tfy_test = tf.data.Dataset.from_generator(y_cv,
+                                        (tf.bool, ), 
+                                        (tf.TensorShape(None), 
+                                            ))
 value = tfdata.make_one_shot_iterator().get_next()
 with tf.Session() as sess:
     sess.run(value)
@@ -145,3 +174,34 @@ with tf.Session() as sess:
 #plt.title('PCA approximation of the image %s' % training_set_indices[idx][0])
 #plt.imshow(PCA_image.T, cmap = 'gray')
 # plt.show()
+
+
+## Create the NN
+# Logits Layer
+# logits = tf.layers.dense(inputs=dropout, units=10)
+# predictions = {
+#    # Generate predictions (for PREDICT and EVAL mode)
+#    "classes": tf.argmax(input=logits, axis=1),
+#    # Add `softmax_tensor` to the graph. It is used for PREDICT and by the
+#    # `logging_hook`.
+#    "probabilities": tf.nn.softmax(logits, name="softmax_tensor")
+#    }
+
+
+layer1 = tf.layers.Dense(512, inputs=neig+1, activation=tf.nn.relu)
+layer2 = tf.layers.Dense(50 , inputs=layer1 , activation=tf.nn.relu)
+output = tf.layers.Dense(1, inputs=layer2, activation=tf.nn.relu)
+
+'''
+model = tf.keras.models.Sequential([
+  tf.keras.layers.Dense(512, 
+      input_shape=(neig + 1,), activation=tf.nn.relu),
+  tf.keras.layers.Dense(50, activation=tf.nn.softmax),
+  tf.keras.layers.Dense(1, activation=tf.nn.softmax)
+])
+model.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+model.fit(tfx_train, tfy_train, epochs=5)
+model.evaluate(tfx_test, tfy_test)
+'''
