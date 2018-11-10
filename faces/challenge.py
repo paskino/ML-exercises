@@ -62,8 +62,9 @@ if ni - num[-1] > 1:
 names_repeat = []
 index_repeat = []
 name_index = {}
+min_num_pics = 2
 for i in range (len(count)):
-    if count[i] > 1:
+    if count[i] >= min_num_pics:
         for j in range(count[i]):
             names_repeat.append(names[i])
             index_repeat.append(num[i] + j)
