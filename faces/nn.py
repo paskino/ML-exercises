@@ -109,8 +109,33 @@ class XDataset(FaceDataset):
         return super(XDataset, self).__next__()[0]
 
 # next(dataset)
-#dataset = FaceDataset(training_set_indices , v)
+dataset = FaceDataset(training_set_indices , v)
 #print ("dataset: " , dataset.__next__())
+
+labels = []
+features = []
+for i in dataset:
+    labels.append(i[1])
+    features.append(i[0])
+
+labels = numpy.asarray(labels)
+features = numpy.asarray(features)
+sample_weights = numpy.ones(labels.shape)
+
+min_label_distribution = 0.3
+sample_weights[labels] = min_label_distribution / labels.sum() * len(labels)
+
+cv_set = FaceDataset(cv_set_indices, v)
+
+cv_labels = []
+cv_features = []
+for i in cv_set:
+    cv_labels.append(i[1])
+    cv_features.append(i[0])
+
+cv_labels = numpy.asarray(cv_labels)
+cv_features = numpy.asarray(cv_features)
+'''
 x_train = XDataset(training_set_indices , v)
 y_train = LabelDataset(training_set_indices , v)
 x_cv = XDataset(cv_set_indices , v)
@@ -132,9 +157,21 @@ tfy_test = tf.data.Dataset.from_generator(y_cv,
                                         (tf.bool, ), 
                                         (tf.TensorShape(None), 
                                             ))
+
+iterator = tf.data.Iterator.from_structure(tfx_train.output_types,
+                                           tfx_train.output_shapes)
+
+tfdata = tf.data.Dataset.from_generator(dataset, (tf.float32, tf.uint8), (tf.TensorShape(neig+1), tf.TensorShape(None)))
 value = tfdata.make_one_shot_iterator().get_next()
+value2 = tfx_train.make_one_shot_iterator().get_next()
 with tf.Session() as sess:
     sess.run(value)
+
+'''
+
+#value = tfx_train.make_one_shot_iterator().get_next()
+#with tf.Session() as sess:
+#    sess.run(value)
 
 # for i, face in enumerate(training_set_indices):
 #    faceindex = face[1]
@@ -187,21 +224,30 @@ with tf.Session() as sess:
 #    "probabilities": tf.nn.softmax(logits, name="softmax_tensor")
 #    }
 
+# layer1 = tf.layers.dense(inputs=1141, units=50, activation=tf.nn.relu)
+# layer2 = tf.layers.dense(inputs=layer1 , units = 1, activation=tf.nn.relu)
+# outlayer = tf.layers.dense( inputs=layer2, activation=tf.nn.relu)
 
-layer1 = tf.layers.Dense(512, inputs=neig+1, activation=tf.nn.relu)
-layer2 = tf.layers.Dense(50 , inputs=layer1 , activation=tf.nn.relu)
-output = tf.layers.Dense(1, inputs=layer2, activation=tf.nn.relu)
 
-'''
 model = tf.keras.models.Sequential([
-  tf.keras.layers.Dense(512, 
+  tf.keras.layers.Dense(250, 
       input_shape=(neig + 1,), activation=tf.nn.relu),
-  tf.keras.layers.Dense(50, activation=tf.nn.softmax),
-  tf.keras.layers.Dense(1, activation=tf.nn.softmax)
+  tf.keras.layers.Dense(50, activation=tf.nn.relu),
+  tf.keras.layers.Dense(1, activation=tf.nn.sigmoid)
 ])
 model.compile(optimizer='adam',
-              loss='sparse_categorical_crossentropy',
+              loss='binary_crossentropy',
               metrics=['accuracy'])
-model.fit(tfx_train, tfy_train, epochs=5)
-model.evaluate(tfx_test, tfy_test)
-'''
+history = model.fit(features, labels, epochs=20, batch_size=350,
+        validation_split=0.3,
+        sample_weight = sample_weights )
+#model.evaluate(cv_features, cv_labels)
+plt.subplot(1,2,1)
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.legend(['train', 'test'], loc='upper left')
+plt.subplot(1,2,2)
+plt.plot(history.history['acc'])
+plt.plot(history.history['val_acc'])
+plt.legend(['train', 'test'], loc='lower right')
+plt.show()
