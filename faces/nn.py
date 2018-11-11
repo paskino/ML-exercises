@@ -3,6 +3,7 @@ from functools import reduce
 import matplotlib.pyplot as plt
 import pickle
 import tensorflow as tf
+import sys
 
 __version__ = '0.1.0'
 
@@ -42,10 +43,32 @@ neig, ni = v.shape
 
 training_set_indices = pickle.load(open("training_set_indices.pkl", "rb"))
 cv_set_indices = pickle.load(open("cv_set_indices.pkl", "rb"))
+# PCA matrix
+u = numpy.load("lfwfp1140eigim.npy")
 
+# coordinates
+v = numpy.load("lfwfp1140coord.npy")
 
-N_unique_people = training_set_indices[-1][2]
+nc, ny, nx = u.shape
 
+N_unique_people = training_set_indices[-1][2] + 1
+
+select = 'George_W_Bush'
+select = 'Serena_Williams'
+select = 'Laura_Bush'
+index = 0 
+
+while (not select == cv_set_indices[index][0]):
+    index += 1
+    print (cv_set_indices[index][0])
+    
+PCA_image = numpy.dot(u.T, v.T[cv_set_indices[index][1]])
+PCA_image = numpy.reshape(PCA_image, (ny, nx))
+plt.figure()
+plt.title('PCA approximation of the image {}'.format(cv_set_indices[index][0]))
+plt.imshow(PCA_image.T, cmap = 'gray')
+plt.show()
+#sys.exit(0)
 
 class FaceDataset(object):
     '''Create an iterator class as generator for Tensorflow's DataSet
@@ -53,8 +76,8 @@ class FaceDataset(object):
         https://www.tensorflow.org/guide/datasets
         https://www.tensorflow.org/api_docs/python/tf/data/Dataset
     '''
-    def __init__(self, indices, eigcoord):
-        self.N_unique = indices[-1][2]
+    def __init__(self, indices, eigcoord, batch_size=50):
+        self.N_unique = indices[-1][2] + 1
         self.v = eigcoord
         self.indices = indices
         self.index = 0
@@ -63,6 +86,7 @@ class FaceDataset(object):
         self.dimName = self.N_unique
         self.indexPic = 0
         self.indexName = 0
+        self.batch_size = batch_size
 
     def __len__(self):
         return self.__length
@@ -96,6 +120,25 @@ class FaceDataset(object):
 
         return y
 
+    def __getitem__(self):
+
+        labels = []
+        features = []
+        for i in range(self.batch_size):
+            el = self.__next__()
+            labels.append(el[1])
+            features.append(el[0])
+
+        labels = numpy.asarray(labels)
+        features = numpy.asarray(features)
+        return (features, labels)
+
+    def on_epoch_end(self):
+        self.__init__(self.indices, self.v,
+                self.batch_size)
+
+
+
 class LabelDataset(FaceDataset):
     def __init__(self, indices, eigcoord):
         super(LabelDataset, self).__init__(indices, eigcoord)
@@ -121,11 +164,11 @@ for i in dataset:
 labels = numpy.asarray(labels)
 features = numpy.asarray(features)
 sample_weights = numpy.ones(labels.shape)
-
-min_label_distribution = 1
+min_label_distribution = 0.5
 sample_weights[labels] = min_label_distribution  * \
         (len(labels) - labels.sum()) / labels.sum()
 
+# cross validation
 cv_set = FaceDataset(cv_set_indices, v)
 
 cv_labels = []
@@ -136,112 +179,22 @@ for i in cv_set:
 
 cv_labels = numpy.asarray(cv_labels)
 cv_features = numpy.asarray(cv_features)
-'''
-x_train = XDataset(training_set_indices , v)
-y_train = LabelDataset(training_set_indices , v)
-x_cv = XDataset(cv_set_indices , v)
-y_cv = LabelDataset(cv_set_indices , v)
-print ("x_train: " , x_train.__next__())
-print ("y_train: " , y_train.__next__())
 
-tfx_train = tf.data.Dataset.from_generator(x_train,
-                                        (tf.float32, ), 
-                                        (tf.TensorShape(neig+1), 
-                                            ))
-tfy_train = tf.data.Dataset.from_generator(y_train,
-                                        tf.bool) 
-tfx_test = tf.data.Dataset.from_generator(x_cv,
-                                        (tf.float32, ), 
-                                        (tf.TensorShape(neig+1), 
-                                            ))
-tfy_test = tf.data.Dataset.from_generator(y_cv,
-                                        (tf.bool, ), 
-                                        (tf.TensorShape(None), 
-                                            ))
-
-iterator = tf.data.Iterator.from_structure(tfx_train.output_types,
-                                           tfx_train.output_shapes)
-
-tfdata = tf.data.Dataset.from_generator(dataset, (tf.float32, tf.uint8), (tf.TensorShape(neig+1), tf.TensorShape(None)))
-value = tfdata.make_one_shot_iterator().get_next()
-value2 = tfx_train.make_one_shot_iterator().get_next()
-with tf.Session() as sess:
-    sess.run(value)
-
-'''
-
-#value = tfx_train.make_one_shot_iterator().get_next()
-#with tf.Session() as sess:
-#    sess.run(value)
-
-# for i, face in enumerate(training_set_indices):
-#    faceindex = face[1]
-#    print (face[0] , "img index" , face[1])
-#    for unique in range(N_unique_people):
-#        training_set[i*N_unique_people+unique][:] = numpy.hstack((v.T[faceindex] , unique))
-#        training_label[i*N_unique_people+unique] = 1 if face[2] == unique else 0
-
-
-# for i,face in enumerate(cv_set_indices):
-#    faceindex = face[1]
-#    for unique in range(N_unique_people):
-#        cv_set[i+unique][:] = numpy.hstack((v.T[faceindex] , unique))
-#        cv_label[i+unique] = 1 if face[2] == unique else 0
-#numpy.save("training_set.npy", training_set)
-#numpy.save("training_label.npy", training_label)
-
-# check we are doing something sensible.
-
-#select = 'Vladimir_Putin'
-##select = 'Aaron_Peirsol'
-#idx = 0
-# while (not training_set_indices[idx][0] == select):
-#    idx += 1
-#set_index = training_set_indices[idx][1]
-#unique = training_set_indices[idx][2]
-
-#select_coord = training_set[unique * N_unique_people + set_index]
-
-#nc, ny, nx = u.shape
-
-##index = index_repeat[i]
-
-#PCA_image = numpy.dot(u.T, select_coord[:-1])
-#PCA_image = numpy.reshape(PCA_image, (ny, nx))
-# plt.figure()
-#plt.title('PCA approximation of the image %s' % training_set_indices[idx][0])
-#plt.imshow(PCA_image.T, cmap = 'gray')
-# plt.show()
-
-
-## Create the NN
-# Logits Layer
-# logits = tf.layers.dense(inputs=dropout, units=10)
-# predictions = {
-#    # Generate predictions (for PREDICT and EVAL mode)
-#    "classes": tf.argmax(input=logits, axis=1),
-#    # Add `softmax_tensor` to the graph. It is used for PREDICT and by the
-#    # `logging_hook`.
-#    "probabilities": tf.nn.softmax(logits, name="softmax_tensor")
-#    }
-
-# layer1 = tf.layers.dense(inputs=1141, units=50, activation=tf.nn.relu)
-# layer2 = tf.layers.dense(inputs=layer1 , units = 1, activation=tf.nn.relu)
-# outlayer = tf.layers.dense( inputs=layer2, activation=tf.nn.relu)
-
-
+## Model
 model = tf.keras.models.Sequential([
   tf.keras.layers.Dense(250, 
-      input_shape=(neig + 1,), activation=tf.nn.relu),
-  tf.keras.layers.Dense(20, activation=tf.nn.relu),
+      input_shape=(neig + 1,), activation=tf.nn.sigmoid),
+  tf.keras.layers.Dense(20, activation=tf.nn.sigmoid),
   tf.keras.layers.Dense(1, activation=tf.nn.sigmoid)
 ])
 model.compile(optimizer='adam',
               loss='binary_crossentropy',
               metrics=['binary_accuracy'])
-history = model.fit(features, labels, epochs=50, batch_size=350,
-        validation_split=0.2,
+
+# train
+history = model.fit(features, labels, epochs=2, batch_size=350,
         sample_weight = sample_weights ,
+        validation_data = (cv_features, cv_labels),
         shuffle = True,
         verbose = 2)
 #model.evaluate(cv_features, cv_labels)
@@ -254,3 +207,22 @@ plt.plot(history.history['binary_accuracy'])
 plt.plot(history.history['val_binary_accuracy'])
 plt.legend(['train', 'test'], loc='lower right')
 plt.show()
+
+
+
+
+# find best match
+match = []
+for i in range(cv_set_indices[-1][2]):
+    x = numpy.hstack((v.T[cv_set_indices[index][1]],i))
+    match.append(
+        (model.predict(x, batch_size=None, verbose=0),\
+                i,cv_set_indices[index][0])
+    )
+    
+#PCA_image = numpy.dot(u.T, v.T[cv_set_indices[index][1]])
+#PCA_image = numpy.reshape(PCA_image, (ny, nx))
+#plt.figure()
+#plt.title('PCA approximation of the image {}'.format(cv_set_indices[index][0]))
+#plt.imshow(PCA_image.T, cmap = 'gray')
+#plt.show()
