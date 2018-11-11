@@ -119,6 +119,7 @@ for select in names:
 
         nselect = reduce(lambda x,y: x + 1 if y == select else x, names_repeat,0)
         #print ("{0}, found {1} images".format(select, nselect))
+        '''
         if nselect == 2:
             nts = 1
             ncv = 1
@@ -146,7 +147,9 @@ for select in names:
         else:
             nts = int(nselect * 0.7)
             ncv = nselect - nts
-    
+        '''
+        nts = nselect
+        ncv = 0
             #print ("   Number of images in training set {0}".format(nts))
             #print ("   Number of images in cross validation set {0}".format(ncv))
         for n in range(nts):
@@ -188,4 +191,4 @@ plt.show()
 
 # save description of dataset
 pickle.dump(training_set_indices, open("training_set_indices.pkl", "wb"))
-pickle.dump(cv_set_indices, open("cv_set_indices.pkl", "wb"))
+#pickle.dump(cv_set_indices, open("cv_set_indices.pkl", "wb"))

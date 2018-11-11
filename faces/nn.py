@@ -122,8 +122,9 @@ labels = numpy.asarray(labels)
 features = numpy.asarray(features)
 sample_weights = numpy.ones(labels.shape)
 
-min_label_distribution = 0.3
-sample_weights[labels] = min_label_distribution / labels.sum() * len(labels)
+min_label_distribution = 1
+sample_weights[labels] = min_label_distribution  * \
+        (len(labels) - labels.sum()) / labels.sum()
 
 cv_set = FaceDataset(cv_set_indices, v)
 
@@ -232,22 +233,24 @@ with tf.Session() as sess:
 model = tf.keras.models.Sequential([
   tf.keras.layers.Dense(250, 
       input_shape=(neig + 1,), activation=tf.nn.relu),
-  tf.keras.layers.Dense(50, activation=tf.nn.relu),
+  tf.keras.layers.Dense(20, activation=tf.nn.relu),
   tf.keras.layers.Dense(1, activation=tf.nn.sigmoid)
 ])
 model.compile(optimizer='adam',
               loss='binary_crossentropy',
-              metrics=['accuracy'])
-history = model.fit(features, labels, epochs=20, batch_size=350,
-        validation_split=0.3,
-        sample_weight = sample_weights )
+              metrics=['binary_accuracy'])
+history = model.fit(features, labels, epochs=50, batch_size=350,
+        validation_split=0.2,
+        sample_weight = sample_weights ,
+        shuffle = True,
+        verbose = 2)
 #model.evaluate(cv_features, cv_labels)
 plt.subplot(1,2,1)
 plt.plot(history.history['loss'])
 plt.plot(history.history['val_loss'])
 plt.legend(['train', 'test'], loc='upper left')
 plt.subplot(1,2,2)
-plt.plot(history.history['acc'])
-plt.plot(history.history['val_acc'])
+plt.plot(history.history['binary_accuracy'])
+plt.plot(history.history['val_binary_accuracy'])
 plt.legend(['train', 'test'], loc='lower right')
 plt.show()
