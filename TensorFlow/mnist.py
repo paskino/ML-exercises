@@ -9,7 +9,7 @@ import scipy.io as sio
 
 
 __version__ = '0.1.0'
-class MNISTDataset(tf.keras.utils.Sequence):
+class MNISTDataset(object):
     '''Create an iterator class as generator for Tensorflow's DataSet
 
         https://www.tensorflow.org/guide/datasets
