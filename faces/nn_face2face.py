@@ -35,15 +35,18 @@ __version__ = '0.1.0'
 
 training_set_indices = pickle.load(open("training_set_indices.pkl", "rb"))
 cv_set_indices = pickle.load(open("cv_set_indices.pkl", "rb"))
-neig = 50
+neig = 128
 
 # PCA matrix
 U = numpy.load("lfwfp1140eigim.npy")
+U = numpy.load("lfw128eigim.npy")
+
 u = U[:neig]
 nc, ny, nx = u.shape
 
 # coordinates
 V = numpy.load("lfwfp1140coord.npy")
+V = numpy.load("lfw128coord.npy")
 v = V[:neig]
 
 # neig total
@@ -243,21 +246,25 @@ class FaceFaceDataset(object):
 
     def __getitem__(self):
 
-        labels = []
-        features = []
+        #labels = []
+        #features = []
+        n,l = self.v.shape
+        labels = numpy.zeros((self.batch_size, ), dtype=numpy.bool)
+        features = numpy.zeros((self.batch_size, n))
         for i in range(self.batch_size):
             el = self.__next__()
-            labels.append(el[1])
-            features.append(el[0])
+            #labels.append(el[1])
+            #features.append(el[0])
+            labels[i] = el[1]
+            features[i] = el[0][:]
 
-        labels = numpy.asarray(labels)
-        features = numpy.asarray(features)
+        #labels = numpy.asarray(labels)
+        #features = numpy.asarray(features)
         return (features, labels)
 
     def on_epoch_end(self):
         self.__init__(self.indices, self.v,
                 self.batch_size)
-
 
 
 
@@ -274,7 +281,7 @@ class XDataset(FaceNameDataset):
         return super(XDataset, self).__next__()[0]
 
 # next(dataset)
-batchsize = 50
+batchsize = 350
 dataset = FaceFaceDataset(training_set_indices , v, batch_size=batchsize)
 dataset.weight = len(dataset)/positives
 dataset2 = FaceFaceDataset(cv_set_indices , v, batch_size=batchsize)
@@ -333,29 +340,35 @@ with tf.Session() as sess:
 #%%
 ## Model
 model = tf.keras.models.Sequential([
-  tf.keras.layers.Dense(250, 
-      input_shape=((neig)*(2),), activation=tf.nn.sigmoid),
+  tf.keras.layers.Dense(10, 
+      input_shape=((neig)*(2),), activation=tf.nn.sigmoid,
+      kernel_regularizer=tf.keras.regularizers.l2(0.001)),
   #tf.keras.layers.Dense(60, activation=tf.nn.sigmoid),
-  tf.keras.layers.Dense(40, activation=tf.nn.sigmoid),
+  #tf.keras.layers.Dense(10, activation=tf.nn.sigmoid),
   tf.keras.layers.Dense(1, activation=tf.nn.sigmoid)
 ])
 #%%
-model.compile(optimizer='adam',
+model.compile(optimizer='sgd',
               loss='binary_crossentropy',
-              metrics=['binary_accuracy'])
+              metrics=['binary_accuracy','binary_crossentropy'])
 #%%
 # train
 print ( "len(dataset)//batchsize" , len(dataset)//batchsize )
-# this works in TF 1.10
+# https://www.tensorflow.org/versions/r1.10/api_docs/python/tf/keras/Model
+# class_weight: Optional dictionary mapping class indices (integers) to a 
+# weight (float) value, used for weighting the loss function (during training
+# only). This can be useful to tell the model to "pay more attention" to
+# samples from an under-represented class.
 class_weight = {0:len(dataset)/positives, 1:1}
-class_weight = [1,len(dataset)/positives]
-history = model.fit(tf_train, epochs=1, 
+# this works in TF 1.10: a list not a dictionary!!!
+class_weight = [len(dataset)/positives,1]
+history = model.fit(tf_train, epochs=10, 
         class_weight=class_weight,
         shuffle = False,
         verbose = 1, 
         steps_per_epoch=len(dataset)//batchsize,
-        #validation_data = tf_cv,
-        #validation_steps=len(dataset2)//batchsize
+        validation_data = tf_cv,
+        validation_steps=len(dataset2)//batchsize
         )
 #%%
 #model.evaluate(cv_features, cv_labels)
@@ -367,6 +380,7 @@ plt.legend(['train', 'test'], loc='upper left')
 ax = plt.subplot(1,2,2)
 ax.set_title("accuracy")
 plt.plot(history.history['binary_accuracy'])
+plt.plot(history.history['binary_crossentropy'])
 plt.plot(history.history['val_binary_accuracy'])
 plt.legend(['train', 'test'], loc='lower right')
 plt.show()
