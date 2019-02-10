@@ -35,7 +35,7 @@ __version__ = '0.1.0'
 
 training_set_indices = pickle.load(open("training_set_indices.pkl", "rb"))
 cv_set_indices = pickle.load(open("cv_set_indices.pkl", "rb"))
-neig = 500
+neig = 50
 
 # PCA matrix
 U = numpy.load("lfwfp1140eigim.npy")
@@ -53,6 +53,22 @@ neig, ni = v.shape
 
 N_unique_people = training_set_indices[-1][2] + 1
 
+# Count the number of pictures per person
+for i, el in enumerate(training_set_indices):
+    if i == 0:
+        name = el[0] 
+        count = 1
+        positives = 0
+    else:
+        if el[0] == name:
+            count += 1
+        else:
+            print ("Found {} of {}".format(count, name))
+            positives += count * (count -1)
+            name = el[0]
+            count = 1
+            
+
 select = 'George_W_Bush'
 #select = 'Serena_Williams'
 #select = 'Laura_Bush'
@@ -62,14 +78,32 @@ while (not select == cv_set_indices[index][0]):
     index += 1
     print (cv_set_indices[index][0])
 #%%    
-neig
-PCA_image = numpy.dot(u.T, v.T[cv_set_indices[index][1]])
-PCA_image = numpy.reshape(PCA_image, (ny, nx))
-plt.figure()
-plt.title('PCA approximation of the image {}'.format(cv_set_indices[index][0]))
-plt.imshow(PCA_image.T, cmap = 'gray')
-plt.show()
+    
+def plot_image(u,v,index, n):
+    PCA_image = numpy.dot(u[:n].T, v[:n].T[cv_set_indices[index][1]])
+    PCA_image = numpy.reshape(PCA_image, (ny, nx))
+    plt.figure()
+    plt.title('PCA {} approximation of the image {} '.format(n, cv_set_indices[index][0]))
+    plt.imshow(PCA_image.T, cmap = 'gray')
+    plt.show()
 #sys.exit(0)
+index = 345
+#plot_image(U,V,index,U.shape[0])
+n = 500
+#plot_image(U,V,index,n)
+n = 700
+#plot_image(U,V,index,n)
+n = 800
+#plot_image(U,V,index,n)
+
+def plot_outer(u,v,n,index1, index2):
+    PCA_image = numpy.outer(v[:n].T[cv_set_indices[index][1]], v[:n].T[cv_set_indices[index2][1]])
+    PCA_image = numpy.reshape(PCA_image, (n, n))
+    plt.figure()
+    plt.title('PCA {} approximation of the image {} '.format(n, cv_set_indices[index][0]))
+    plt.imshow(PCA_image.T)
+    plt.show()
+
 #%%
 class FaceNameDataset(object):
     '''Create an iterator class as generator for Tensorflow's DataSet
@@ -146,7 +180,7 @@ class FaceFaceDataset(object):
         https://www.tensorflow.org/api_docs/python/tf/data/Dataset
         https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
     '''
-    def __init__(self, indices, eigcoord, batch_size=50):
+    def __init__(self, indices, eigcoord, batch_size=50, weight=1):
         super(FaceFaceDataset, self).__init__()
         self.N_unique = indices[-1][2] + 1
         self.v = eigcoord
@@ -160,6 +194,7 @@ class FaceFaceDataset(object):
         self.secondIndexPic = 0
         self.indexName = 0
         self.batch_size = batch_size
+        self.weight = weight
 
     def __len__(self):
         return self.__length
@@ -173,7 +208,8 @@ class FaceFaceDataset(object):
     def __next__(self):
 
         if self.index == self.__length:
-            raise StopIteration
+            # raise StopIteration
+            self.on_epoch_end()
         if self.indexPic == self.secondIndexPic:
             self.index_update()
         face1 = self.indices[self.indexPic]
@@ -181,6 +217,7 @@ class FaceFaceDataset(object):
         y = numpy.hstack((self.v.T[self.indexPic], 
                            self.v.T[self.secondIndexPic])),
         lab = True if face1[2] == face2[2] else False
+        w = self.weight if lab else 1
         # print(face)
         # print(self.indexName, "is the same",
         #      1 if face[2] == self.indexName else 0)
@@ -237,8 +274,10 @@ class XDataset(FaceNameDataset):
         return super(XDataset, self).__next__()[0]
 
 # next(dataset)
-dataset = FaceFaceDataset(training_set_indices , v)
-dataset2 = FaceFaceDataset(cv_set_indices , v)
+batchsize = 50
+dataset = FaceFaceDataset(training_set_indices , v, batch_size=batchsize)
+dataset.weight = len(dataset)/positives
+dataset2 = FaceFaceDataset(cv_set_indices , v, batch_size=batchsize)
 #print ("dataset: " , dataset.__next__())
 
 #labels = []
@@ -296,8 +335,8 @@ with tf.Session() as sess:
 model = tf.keras.models.Sequential([
   tf.keras.layers.Dense(250, 
       input_shape=((neig)*(2),), activation=tf.nn.sigmoid),
-  tf.keras.layers.Dense(60, activation=tf.nn.sigmoid),
-  tf.keras.layers.Dense(20, activation=tf.nn.sigmoid),
+  #tf.keras.layers.Dense(60, activation=tf.nn.sigmoid),
+  tf.keras.layers.Dense(40, activation=tf.nn.sigmoid),
   tf.keras.layers.Dense(1, activation=tf.nn.sigmoid)
 ])
 #%%
@@ -306,15 +345,17 @@ model.compile(optimizer='adam',
               metrics=['binary_accuracy'])
 #%%
 # train
-history = model.fit(tf_train, epochs=2, 
-#                    batch_size=350,
-#        sample_weight = sample_weights ,
-        validation_data = tf_cv,
-#        validation_split=0.3,
+print ( "len(dataset)//batchsize" , len(dataset)//batchsize )
+# this works in TF 1.10
+class_weight = {0:len(dataset)/positives, 1:1}
+class_weight = [1,len(dataset)/positives]
+history = model.fit(tf_train, epochs=1, 
+        class_weight=class_weight,
         shuffle = False,
         verbose = 1, 
-        steps_per_epoch=len(dataset)//1000,
-        validation_steps=len(dataset2)
+        steps_per_epoch=len(dataset)//batchsize,
+        #validation_data = tf_cv,
+        #validation_steps=len(dataset2)//batchsize
         )
 #%%
 #model.evaluate(cv_features, cv_labels)
